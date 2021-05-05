@@ -1,0 +1,494 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Catallaxy Services | A Slice of Time</title>
+
+		<link rel="stylesheet" href="../reveal.js/dist/reset.css">
+		<link rel="stylesheet" href="../reveal.js/dist/reveal.css">
+		<link rel="stylesheet" href="../reveal.js/dist/theme/black.css" id="theme">
+		<link rel="stylesheet" href="../WebsiteAssets/mods.css">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="../reveal.js/plugin/highlight/monokai.css" id="highlight-theme">
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h2>A Slice of Time</h2>
+					<h3>Window Functions in SQL Server</h3>
+					
+					<a href="https://www.catallaxyservices.com">Kevin Feasel</a> (<a href="https://twitter.com/feaselkl">@feaselkl</a>)<br />
+					<a href="https://csmore.info/on/windows">https://csmore.info/on/windows</a>
+				</section>
+				
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>Who Am I?  What Am I Doing Here?</h3>
+					<div class="container">
+						<div class="col">
+							<table class="whoami">
+								<tr>
+									<td><a href="https://csmore.info"><img src="../WebsiteAssets/Logo.png" height="100" /></a></td>
+									<td nowrap><a href="https://csmore.info">Catallaxy Services</a></td>
+								</tr>
+								<tr>
+									<td><a href="https://curatedsql.com"><img src="../WebsiteAssets/CuratedSQLLogo.png" height="100" /></a></td>
+									<td nowrap><a href="https://curatedsql.com">Curated SQL</a></td>
+								</tr>
+								<tr>
+									<td><a href="https://www.apress.com/us/book/9781484254608"><img src="../WebsiteAssets/PolyBaseRevealed.png" height="120" /></a></td>
+									<td nowrap><a href="https://www.apress.com/us/book/9781484254608">PolyBase Revealed</a></td>
+								</tr>
+							</table>
+						</div>
+						<div class="col">
+							<a href="http://www.twitter.com/feaselkl"><img src="../WebsiteAssets/HeadShot.jpg" height="358" width="315" /></a>
+							<br />
+							<a href="http://www.twitter.com/feaselkl">@feaselkl</a>
+						</div>					
+					</div>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/motivation.jpg" data-background-opacity="0.2">
+					<h3>Motivation</h3>
+					
+					<p>My goals in this talk:</p>
+					
+					<ul>
+						<li>Explain the concept of window functions.</li>
+						<li>Review the types of window functions available in SQL Server.</li>
+						<li>Walk through use cases for and limitations of window functions.</li>
+						<li>Provide advice on performance tuning of window functions.</li>
+					</ul>
+				</section>
+				
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>Agenda</h3>
+					
+					<ol>
+						<li class="active">An Overview of Window Functions</li>
+						<li>Types of Window Functions</li>
+						<li>Use Cases</li>
+						<li>Limitations</li>
+						<li>Tuning Window Functions</li>
+					</ol>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/questions.jpg" data-background-opacity="0.2">
+					<h3>What is a Window Function?</h3>
+					
+					<p>A window function is <strong>a function applied to a set of rows</strong>.</p>
+					
+					<p>Window functions operate over <strong>windows</strong> of data.</p>
+					
+					<img src="presentation/assets/image/events1.gif" />
+				</section>
+				
+				<section data-background-image="presentation/assets/background/window.jpg" data-background-opacity="0.2">
+					<h3>What is a Window?</h3>
+					
+					<p>A window is <strong>the context of operation for a function call</strong>.</p>
+					
+					<p>This is specified in the <code>OVER()</code> clause.</p>
+					
+					<img src="presentation/assets/image/Window.png" />
+				</section>
+				
+				<section data-background-image="presentation/assets/background/skeleton-thinking.jpg" data-background-opacity="0.2">
+					<h3>Anotamy of a Window Function</h3>
+					
+					<p>There are four key elements to a window function:</p>
+					
+					<ul>
+						<li>The <code>OVER()</code> clause:  defines that this is a window function and the window we will use</li>
+						<li>Partition (<code>PARTITION BY</code>):  filter rows</li>
+						<li>Order (<code>ORDER BY</code>):  sorting when we need an ordered set, but also provides meaning to frames when aggregating data</li>
+						<li>Frame (<code>ROWS</code>, <code>RANGE</code>):  filter within a partition</li>
+					</ul>
+				</section>
+				
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>An Example</h3>
+					
+					<pre><code data-line-numbers="|1-3,11|4|5|6|7|8|9-10" data-trim><script type="text/template">
+					SELECT
+						Col1,
+						Col2,
+						WINDOW_FUNCTION() OVER(
+								PARTITION BY Col1
+								ORDER BY Col2
+								ROWS BETWEEN UNBOUNDED PRECEDING
+									AND CURRENT ROW
+							) AS wf
+					FROM dbo.Table;
+					</script></code></pre>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/demo.jpg" data-background-opacity="0.2">
+					<h3>Demo Time</h3>
+				</section>
+				
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>Agenda</h3>
+					
+					<ol>
+						<li>An Overview of Window Functions</li>
+						<li class="active">Types of Window Functions</li>
+						<li>Use Cases</li>
+						<li>Limitations</li>
+						<li>Tuning Window Functions</li>
+					</ol>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/binders.jpg" data-background-opacity="0.2">
+					<h3>Types of Window Function</h3>
+					
+					<p>There are five classes of window function in SQL Server:</p>
+					
+					<ul>
+						<li>Aggregate: <code>MIN()</code>, <code>MAX()</code>, <code>AVG()</code>, <code>COUNT()</code>, <code>SUM()</code>, etc.</li>
+						<li>Ranking: <code>ROW_NUMBER()</code>, <code>RANK()</code>, <code>DENSE_RANK()</code>, <code>NTILE()</code></li>
+						<li>Offset: <code>LAG()</code>, <code>LEAD()</code>, <code>FIRST_VALUE()</code>, <code>LAST_VALUE()</code></li>
+						<li>Statistical:  <code>PERCENT_RANK()</code>, <code>CUME_DIST()</code>, <code>PERCENTILE_CONT()</code>, <code>PERCENTILE_DISC()</code></li>
+						<li>Ordered set functions:  <code>STRING_AGG()</code></li>
+					</ul>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/demo.jpg" data-background-opacity="0.2">
+					<h3>Demo Time</h3>
+				</section>
+
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>Agenda</h3>
+					
+					<ol>
+						<li>An Overview of Window Functions</li>
+						<li>Types of Window Functions</li>
+						<li class="active">Use Cases</li>
+						<li>Limitations</li>
+						<li>Tuning Window Functions</li>
+					</ol>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/blueprints.jpg" data-background-opacity="0.2">
+					<h3>Key Use Cases</h3>
+					
+					<p>Some of the use cases we will cover:</p>
+					
+					<ol>
+						<li>Finding rows to delete</li>
+						<li>Turning start date + end date into event tracking</li>
+						<li>Running totals</li>
+						<li>Last N values</li>
+						<li>Distinct number of values over time</li>
+						<li>Percent of total</li>
+					</ol>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/demo.jpg" data-background-opacity="0.2">
+					<h3>Demo Time</h3>
+				</section>
+				
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>Agenda</h3>
+					
+					<ol>
+						<li>An Overview of Window Functions</li>
+						<li>Types of Window Functions</li>
+						<li>Use Cases</li>
+						<li class="active">Limitations</li>
+						<li>Tuning Window Functions</li>
+					</ol>
+				</section>
+				
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>Referencing Window Functions</h3>
+					
+					<p>If we define a window function, we can only reference it in the SELECT and ORDER BY clauses:</p>
+					
+					<pre><code data-line-numbers="|1-10|11|12|13|14" data-trim><script type="text/template">
+					SELECT
+						t.Col1,
+						t.Col2,
+						WINDOW_FUNCTION() OVER(
+								PARTITION BY Col1
+								ORDER BY Col2
+								ROWS BETWEEN UNBOUNDED PRECEDING
+									AND CURRENT ROW
+							) AS wf
+					FROM dbo.Table t
+					WHERE wf > 5 -- NO!
+					GROUP BY wf -- NO!
+					HAVING wf > 10 -- NO!
+					ORDER BY wf; -- YES!
+					</script></code></pre>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/levels.jpg" data-background-opacity="0.2">
+					<h3>Logical Processing Order</h3>
+					
+					<p>SQL Server (typically) processes a SELECT statement in the following order (simplifying for space purposes):</p>
+					
+					<div class="container">
+						<div class="col">
+							<ol>
+								<li>FROM</li>
+								<li>JOIN</li>
+								<li>WHERE</li>
+								<li>GROUP BY</li>
+								<li>HAVING</li>
+								<li>SELECT</li>
+								<li>DISTINCT</li>
+								<li>ORDER BY</li>
+							</ol>
+						</div>
+						<div class="col">
+							<p>Window functions are processed in the <code>SELECT</code> section, so anything prior to that in a statement can't use the results of the window function.</p>
+							
+							<p>In other words, <code>WHERE</code>, <code>GROUP BY</code>, <code>HAVING</code>, et al, <strong>shape</strong> the window, so the window cannot subsequently shape them!</p>
+						</div>					
+					</div>
+				</section>
+				
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>The Easiest Workaround</h3>
+					
+					<p>The easiest workaround, and something we've seen already, is to use a common table expression (CTE):</p>
+					
+					<pre><code data-line-numbers="|1-13|14-19" data-trim><script type="text/template">
+					WITH records AS
+					(
+						SELECT
+							t.Col1,
+							t.Col2,
+							WINDOW_FUNCTION() OVER(
+									PARTITION BY Col1
+									ORDER BY Col2
+									ROWS BETWEEN UNBOUNDED PRECEDING
+										AND CURRENT ROW
+								) AS wf
+						FROM dbo.Table t
+					)
+					SELECT r.Col1, r.Col2, r.wf
+					FROM records r
+					WHERE r.wf > 5
+					GROUP BY Col1, Col2, wf
+					HAVING wf > 10
+					ORDER BY wf;
+					</script></code></pre>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/caution.jpg" data-background-opacity="0.2">
+					<h3>Limitations to RANGE</h3>
+					
+					<p>The <code>RANGE</code> window operator is a lot more powerful in the SQL standards than what we have in T-SQL.</p>
+					
+					<pre><code data-line-numbers="|1|2|3|4" data-trim><script type="text/template">
+					RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+					RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+					RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+					RANGE BETWEEN CURRENT ROW AND CURRENT ROW
+					</script></code></pre>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/monkey-thinking.jpg" data-background-opacity="0.2">
+					<h3>What's Missing in RANGE?</h3>
+					
+					<p>The <code>RANGE</code> window operator in SQL Server is missing some great support around intervals:</p>
+					
+					<pre><code data-line-numbers="|1|2" data-trim><script type="text/template">
+					RANGE BETWEEN INTERVAL '1' HOUR PRECEDING AND CURRENT ROW
+					RANGE BETWEEN INTERVAL '7' DAY PRECEDING AND INTERVAL '7' DAY FOLLOWING
+					</script></code></pre>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/flexible.jpg" data-background-opacity="0.2">
+					<h3>Rows versus RANGE</h3>
+					
+					<p>By contrast, the <code>ROWS</code> window operator has more flexibility.</p>
+					
+					<pre><code data-line-numbers="|1-2|3" data-trim><script type="text/template">
+					ROWS BETWEEN { UNBOUNDED PRECEDING | CURRENT ROW }
+						AND { CURRENT ROW | UNBOUNDED FOLLOWING }
+					ROWS BETWEEN 3 PRECEDING AND 3 FOLLOWING
+					</script></code></pre>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/surfer-crash.jpg" data-background-opacity="0.2">
+					<h3>Additional Limitations</h3>
+					
+					<p>Some additional things to keep in mind:</p>
+					
+					<ol>
+						<li>Windows and <code>APPLY</code></li>
+						<li><code>LAST_VALUE()</code> and the default frame</li>
+					</ol>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/demo.jpg" data-background-opacity="0.2">
+					<h3>Demo Time</h3>
+				</section>
+				
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>Agenda</h3>
+					
+					<ol>
+						<li>An Overview of Window Functions</li>
+						<li>Types of Window Functions</li>
+						<li>Use Cases</li>
+						<li>Limitations</li>
+						<li class="active">Tuning Window Functions</li>
+					</ol>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/cobra.jpg" data-background-opacity="0.2">
+					<h3>Techniques for Tuning Window Functions</h3>
+					
+					<ul>
+						<li>Appropriate indexing</li>
+						<li>Batch mode processing</li>
+						<li>Limit the number of windows</li>
+					</ul>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/drawers.jpg" data-background-opacity="0.2">
+					<h3>Indexing:  POC</h3>
+					
+					<p>The rule of thumb around making window functions as fast as possible is to provide an index in the following order:</p>
+					
+					<ul>
+						<li>Partition By columns</li>
+						<li>Order By columns (following ordering!)</li>
+						<li>Covering columns--other columns used in the query</li>
+					</ul>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/folders.jpg" data-background-opacity="0.2">
+					<h3>Indexing:  WHERE before POC</h3>
+					
+					<p>Remember that the <code>WHERE</code> clause operates before the window function, so if you have a great filter, put it before the POC.</p>
+					
+					<ul>
+						<li>WHERE clause filters</li>
+						<li>Partition By columns</li>
+						<li>Order By columns (following ordering!)</li>
+						<li>Covering columns--other columns used in the query</li>
+					</ul>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/paper-stack.jpg" data-background-opacity="0.2">
+					<h3>Batch Mode</h3>
+					
+					<p>SQL Server generally operates in row mode, in which one row is processed by an operator at a time.</p>
+					
+					<p>Introduced in SQL Server 2012, but improved greatly in SQL Server 2016 and even more in 2019.</p>
+					
+					<p>Batch mode provides:</p>
+					
+					<ul>
+						<li>64KB blocks of data, up to 900 rows, read at a time</li>
+						<li>Metadata evaluated once per batch versus once per row</li>
+						<li>Functions operating on a batch handle all ~900 rows at once</li>
+					</ul>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/process.jpg" data-background-opacity="0.2">
+					<h3>Batch Mode Requirements</h3>
+					
+					<p>For batch mode, you need:</p>
+					
+					<ul>
+						<li>Columnstore index + batch mode cost is less than row mode cost</li>
+						<li>OR rowstore index AND ALL OF:
+							<ul>
+								<li>131,072 (2^17) rows in at least one table in the query</li>
+								<li>At least one operator which benefits from batch mode</li>
+								<li>At least one input of a batch has at least 2^17 rows</li>
+								<li>Batch mode cost is less than row mode cost</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+				
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>Batch Mode in 2016</h3>
+					
+					<p>If you have SQL Server 2016 or 2017 but don't want to work with a columnstore index, you can take advantage of a trick:  create a filtered columnstore index, particularly one on an impossible condition.</p>
+					
+					<pre><code data-trim><script type="text/template">
+					CREATE NONCLUSTERED COLUMNSTORE INDEX [NCIS_MyTable] ON dbo.MyTable
+					(
+						Col1,
+						Col2,
+						...
+					)
+					WHERE ID = -1;
+					</script></code></pre>
+				</section>
+				
+				<section data-background-image="presentation/assets/background/demo.jpg" data-background-opacity="0.2">
+					<h3>Demo Time</h3>
+				</section>
+
+				<section data-background-image="presentation/assets/background/wrappingup.jpg" data-background-opacity="0.2">
+					<h3>Wrapping Up</h3>
+
+					<p>Over the course of this talk, we have looked at the concept of window functions, as well as a variety of use cases for them and how to optimize window function queries.</p>
+				</section>
+				
+				<section data-background-image="presentation/assets/image/Bubbles.jpg" data-background-opacity="0.4">
+					<h3>Wrapping Up</h3>
+					
+					<p>
+						To learn more, go here:
+						<br />
+						<a href="https://csmore.info/on/windows">https://csmore.info/on/windows</a>
+					</p>
+					<br />
+					<p>
+						And for help, contact me:
+						<br />
+						<a href="mailto:feasel@catallaxyservices.com">feasel@catallaxyservices.com</a> | <a href="https://www.twitter.com/feaselkl">@feaselkl</a>
+					</p>
+					<br />
+					<p>
+						Catallaxy Services consulting:
+						<br />
+						<a href="https://csmore.info/contact">https://CSmore.info/on/contact</a>
+					</p>
+				</section>
+			</div>
+		</div>
+
+		<script src="../reveal.js/dist/reveal.js"></script>
+		<script src="../reveal.js/plugin/zoom/zoom.js"></script>
+		<script src="../reveal.js/plugin/notes/notes.js"></script>
+		<script src="../reveal.js/plugin/search/search.js"></script>
+		<script src="../reveal.js/plugin/markdown/markdown.js"></script>
+		<script src="../reveal.js/plugin/math/math.js"></script>
+		<script src="../reveal.js/plugin/menu/menu.js"></script>
+		<script src="../reveal.js/plugin/highlight/highlight.js"></script>
+		<script src="../reveal.js/plugin/chart/Chart.min.js"></script>
+		<script src="../reveal.js/plugin/chart/plugin.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				width: '70%',
+				controls: true,
+				progress: true,
+				center: true,
+				hash: true,
+				transition: 'fade',
+				
+
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight, RevealMath, RevealMenu, RevealChart ]
+			});
+		</script>
+	</body>
+</html>
