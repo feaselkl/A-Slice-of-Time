@@ -84,7 +84,7 @@ SELECT
 FROM #t1 t1;
 
 -- Calculate moving average
--- Suppose we want a 3-month moving average
+-- Suppose we want a 3-week moving average
 SELECT
     t1.Id,
     t1.EventDate,

@@ -156,7 +156,8 @@ FROM Sales.InvoiceLinesSmall il
     INNER JOIN Sales.InvoicesSmall i
         ON il.InvoiceID = i.InvoiceID
 ORDER BY
-    il.InvoiceLineID;
+    il.InvoiceLineID,
+	rownum;
 
 -- Ntile
 WITH records AS
@@ -473,6 +474,11 @@ ORDER BY
 ---------------------------
 
 -- STRING_AGG() is the only ordered set function in SQL Server 2019.
+SELECT
+    SalesTerritory,
+    StateProvinceCode
+FROM Application.StateProvinces s;
+
 SELECT
     SalesTerritory,
     STRING_AGG(StateProvinceCode, ',')  AS StatesList
