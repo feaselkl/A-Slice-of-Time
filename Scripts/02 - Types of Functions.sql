@@ -7,8 +7,8 @@ GO
 SELECT
     i.CustomerID,
     SUM(il.LineProfit) AS TotalProfit
-FROM Sales.InvoiceLinesSmall il
-    INNER JOIN Sales.InvoicesSmall i
+FROM Sales.InvoiceLines il
+    INNER JOIN Sales.Invoices i
         ON il.InvoiceID = i.InvoiceID
 GROUP BY
     i.CustomerID;
@@ -21,8 +21,8 @@ SELECT
     i.CustomerID,
     i.InvoiceDate,
     SUM(il.LineProfit) OVER () AS TotalProfit
-FROM Sales.InvoiceLinesSmall il
-    INNER JOIN Sales.InvoicesSmall i
+FROM Sales.InvoiceLines il
+    INNER JOIN Sales.Invoices i
         ON il.InvoiceID = i.InvoiceID;
 
 -- Add a PARTITION BY to sum by customer
@@ -31,8 +31,8 @@ SELECT
     i.CustomerID,
     i.InvoiceDate,
     SUM(il.LineProfit) OVER (PARTITION BY i.CustomerID) AS TotalProfit
-FROM Sales.InvoiceLinesSmall il
-    INNER JOIN Sales.InvoicesSmall i
+FROM Sales.InvoiceLines il
+    INNER JOIN Sales.Invoices i
         ON il.InvoiceID = i.InvoiceID;
 
 -- Add an ORDER BY to create a running total
@@ -45,8 +45,8 @@ SELECT
     SUM(il.LineProfit) OVER (
         PARTITION BY i.CustomerID
         ORDER BY i.InvoiceDate) AS RunningTotalProfit
-FROM Sales.InvoiceLinesSmall il
-    INNER JOIN Sales.InvoicesSmall i
+FROM Sales.InvoiceLines il
+    INNER JOIN Sales.Invoices i
         ON il.InvoiceID = i.InvoiceID
 ORDER BY
     i.CustomerID,
@@ -64,8 +64,8 @@ SELECT
         ORDER BY i.InvoiceDate
         RANGE BETWEEN UNBOUNDED PRECEDING
             AND CURRENT ROW) AS RunningTotalProfit
-FROM Sales.InvoiceLinesSmall il
-    INNER JOIN Sales.InvoicesSmall i
+FROM Sales.InvoiceLines il
+    INNER JOIN Sales.Invoices i
         ON il.InvoiceID = i.InvoiceID
 ORDER BY
     i.CustomerID,
@@ -83,8 +83,8 @@ SELECT
         ORDER BY i.InvoiceDate
         ROWS BETWEEN UNBOUNDED PRECEDING
             AND CURRENT ROW) AS RunningTotalProfit
-FROM Sales.InvoiceLinesSmall il
-    INNER JOIN Sales.InvoicesSmall i
+FROM Sales.InvoiceLines il
+    INNER JOIN Sales.Invoices i
         ON il.InvoiceID = i.InvoiceID
 ORDER BY
     i.CustomerID,
@@ -133,8 +133,8 @@ SELECT
         ROWS BETWEEN UNBOUNDED PRECEDING
             AND CURRENT ROW
     ) AS CountLineProfit
-FROM Sales.InvoiceLinesSmall il
-    INNER JOIN Sales.InvoicesSmall i
+FROM Sales.InvoiceLines il
+    INNER JOIN Sales.Invoices i
         ON il.InvoiceID = i.InvoiceID
 ORDER BY
     i.CustomerID,
@@ -152,8 +152,8 @@ SELECT TOP(250)
     ROW_NUMBER() OVER (ORDER BY il.InvoiceID) AS rownum,
     DENSE_RANK() OVER (ORDER BY il.InvoiceID) AS dr,
     RANK() OVER (ORDER BY il.InvoiceID) AS rk
-FROM Sales.InvoiceLinesSmall il
-    INNER JOIN Sales.InvoicesSmall i
+FROM Sales.InvoiceLines il
+    INNER JOIN Sales.Invoices i
         ON il.InvoiceID = i.InvoiceID
 ORDER BY
     il.InvoiceLineID,
@@ -167,8 +167,8 @@ WITH records AS
         il.InvoiceID,
         i.CustomerID,
         il.LineProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     ORDER BY il.InvoiceLineID
 )
@@ -198,8 +198,8 @@ WITH records AS
     SELECT
         i.InvoiceDate,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate
@@ -227,8 +227,8 @@ WITH records AS
     SELECT
         i.InvoiceDate,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate
@@ -248,8 +248,8 @@ WITH records AS
     SELECT
         i.InvoiceDate,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate
@@ -273,8 +273,8 @@ WITH records AS
         i.InvoiceDate,
         i.CustomerID,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate,
@@ -303,8 +303,8 @@ WITH records AS
         i.InvoiceDate,
         i.CustomerID,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate,
@@ -345,8 +345,8 @@ WITH records AS
         i.InvoiceDate,
         i.CustomerID,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate,
@@ -368,8 +368,8 @@ WITH records AS
         i.InvoiceDate,
         i.CustomerID,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate,
@@ -394,8 +394,8 @@ WITH records AS
         i.InvoiceDate,
         i.CustomerID,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate,
@@ -423,8 +423,8 @@ WITH records AS
         i.InvoiceDate,
         i.CustomerID,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate,
@@ -451,8 +451,8 @@ WITH records AS
         i.InvoiceDate,
         i.CustomerID,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate,

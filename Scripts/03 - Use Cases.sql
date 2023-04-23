@@ -143,7 +143,7 @@ invoices AS
         i.TotalChillerItems,
         i.TotalDryItems,
         ROW_NUMBER() OVER (PARTITION BY i.CustomerID ORDER BY i.InvoiceDate DESC) AS rownum
-    FROM Sales.InvoicesSmall i
+    FROM Sales.Invoices i
         INNER JOIN customers c
             ON i.CustomerID = c.CustomerID
 )

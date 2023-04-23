@@ -76,8 +76,8 @@ WITH records AS
     SELECT
         i.InvoiceDate,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate
@@ -99,8 +99,8 @@ WITH records AS
     SELECT
         i.InvoiceDate,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate
@@ -123,8 +123,8 @@ WITH records AS
     SELECT
         i.InvoiceDate,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate
@@ -150,8 +150,8 @@ WITH records AS
     SELECT
         i.InvoiceDate,
         SUM(il.LineProfit) AS DailyProfit
-    FROM Sales.InvoiceLinesSmall il
-        INNER JOIN Sales.InvoicesSmall i
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
             ON il.InvoiceID = i.InvoiceID
     GROUP BY
         i.InvoiceDate
