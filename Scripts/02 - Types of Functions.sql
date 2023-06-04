@@ -140,6 +140,29 @@ ORDER BY
     i.CustomerID,
     i.InvoiceDate;
 
+-- Simplify this in SQL Server 2022
+SELECT
+    i.InvoiceID,
+    i.CustomerID,
+    i.InvoiceDate,
+    il.InvoiceLineID,
+    il.LineProfit,
+    SUM(il.LineProfit) OVER PriorOrders AS RunningTotalProfit,
+    SUM(il.LineProfit) OVER () AS TotalProfit,
+    MIN(il.Lineprofit) OVER PriorOrders AS MinLineProfit,
+    MAX(il.Lineprofit) OVER PriorOrders AS MaxLineProfit,
+    AVG(il.Lineprofit) OVER PriorOrders AS AvgLineProfit,
+    STDEV(il.Lineprofit) OVER PriorOrders AS StdevLineProfit,
+    COUNT(il.Lineprofit) OVER PriorOrders AS CountLineProfit
+FROM Sales.InvoiceLines il
+    INNER JOIN Sales.Invoices i
+        ON il.InvoiceID = i.InvoiceID
+WINDOW
+    PriorOrders AS (PARTITION BY i.CustomerID ORDER BY i.InvoiceDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+ORDER BY
+    i.CustomerID,
+    i.InvoiceDate;
+
 -----------------------
 -- Ranking functions --
 -----------------------
@@ -478,6 +501,21 @@ SELECT
     SalesTerritory,
     StateProvinceCode
 FROM Application.StateProvinces s;
+
+-- Prior to SQL Server 2017
+SELECT
+    SalesTerritory,
+    STUFF(
+        (SELECT ',' + StateProvinceCode
+        FROM Application.StateProvinces sp
+        WHERE
+            sp.SalesTerritory = s.SalesTerritory
+        FOR XML PATH('')),
+        1, 1, ''
+    )  AS StatesList
+FROM Application.StateProvinces s
+GROUP BY
+    SalesTerritory;
 
 SELECT
     SalesTerritory,
