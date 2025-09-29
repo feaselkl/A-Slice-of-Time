@@ -78,7 +78,7 @@ SELECT
     t1.NumberOfAttendees,
     SUM(t1.NumberOfAttendees) OVER (
         ORDER BY t1.EventDate
-        RANGE BETWEEN UNBOUNDED PRECEDING
+        ROWS BETWEEN UNBOUNDED PRECEDING
             AND CURRENT ROW
     ) AS RunningTotal
 FROM #t1 t1;
@@ -170,6 +170,62 @@ FROM records r
 ORDER BY
 	OrderDate;
 
+-- Last Observation Carried Forward
+-- Notice the gaps!
+WITH runningTotal AS 
+(
+    SELECT 
+        t1.EventDate,
+        SUM(t1.NumberOfAttendees) OVER (
+            ORDER BY t1.EventDate
+            ROWS BETWEEN UNBOUNDED PRECEDING
+                AND CURRENT ROW
+        ) AS RunningTotal
+    FROM #t1 t1
+),
+dates AS
+(
+    SELECT
+        CAST(DATEADD(DAY, s.value, '2021-04-01') AS DATE) AS CalendarDate
+    FROM GENERATE_SERIES(0, 85, 1) AS s
+)
+SELECT
+    d.CalendarDate,
+    rt.RunningTotal
+FROM dates d
+    LEFT OUTER JOIN runningTotal rt
+        ON d.CalendarDate = rt.EventDate;
+
+
+-- LAG() and LEAD() allow us to ignore prior NULLs and get to the last non-NULL.
+-- This is not a default setting but can be enabled with the IGNORE NULLS option.
+WITH runningTotal AS 
+(
+    SELECT 
+        t1.EventDate,
+        SUM(t1.NumberOfAttendees) OVER (
+            ORDER BY t1.EventDate
+            ROWS BETWEEN UNBOUNDED PRECEDING
+                AND CURRENT ROW
+        ) AS RunningTotal
+    FROM #t1 t1
+),
+dates AS
+(
+    SELECT
+        CAST(DATEADD(DAY, s.value, '2021-04-01') AS DATE) AS CalendarDate
+    FROM GENERATE_SERIES(0, 85, 1) AS s
+)
+SELECT
+    d.CalendarDate,
+    ISNULL(
+        rt.RunningTotal,
+        LAG(rt.RunningTotal) IGNORE NULLS OVER (ORDER BY d.CalendarDate)
+    ) AS RunningTotal
+FROM dates d
+    LEFT OUTER JOIN runningTotal rt
+        ON d.CalendarDate = rt.EventDate;
+
 -- Turn start date and end date into an event system
 -- Our goal:  for each customer, what is the largest number of orders en route at any point in time?
 -- Use Order Date as the start point and Expected Delivery Date as the end point.
@@ -180,15 +236,17 @@ WITH StartStopPoints AS
 (
 	SELECT
 		o.CustomerID,
+        o.OrderID,
 		o.OrderDate AS TimeUTC,
 		1 AS IsStartingPoint,
-		ROW_NUMBER() OVER (PARTITION BY o.CustomerID ORDER BY o.OrderDate) AS StartOrdinal
+		ROW_NUMBER() OVER (PARTITION BY o.CustomerID ORDER BY o.OrderDate, o.OrderID) AS StartOrdinal
 	FROM Sales.Orders o
 
 	UNION ALL
 
 	SELECT
 		o.CustomerID,
+        o.OrderID,
 		o.ExpectedDeliveryDate AS TimeUTC,
 		0 AS IsStartingPoint,
 		NULL AS StartOrdinal
@@ -201,7 +259,7 @@ StartStopOrder AS
 		s.TimeUTC,
 		s.IsStartingPoint,
 		s.StartOrdinal,
-		ROW_NUMBER() OVER (PARTITION BY s.CustomerID ORDER BY s.TimeUTC, s.IsStartingPoint) AS StartOrEndOrdinal
+		ROW_NUMBER() OVER (PARTITION BY s.CustomerID ORDER BY s.TimeUTC, s.IsStartingPoint, s.OrderID) AS StartOrEndOrdinal
 	FROM StartStopPoints s
 )
 SELECT

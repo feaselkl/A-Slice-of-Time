@@ -158,7 +158,7 @@ FROM Sales.InvoiceLines il
     INNER JOIN Sales.Invoices i
         ON il.InvoiceID = i.InvoiceID
 WINDOW
-    PriorOrders AS (PARTITION BY i.CustomerID ORDER BY i.InvoiceDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+    PriorOrders AS (PARTITION BY i.CustomerID  ORDER BY i.InvoiceDate ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
 ORDER BY
     i.CustomerID,
     i.InvoiceDate;
@@ -490,6 +490,7 @@ SELECT
 FROM records r
 ORDER BY
     r.CustomerID DESC,
+    r.DailyProfit ASC,
     r.InvoiceDate;
 
 ---------------------------
@@ -502,7 +503,7 @@ SELECT
     StateProvinceCode
 FROM Application.StateProvinces s;
 
--- Prior to SQL Server 2017
+-- Prior to SQL Server 2019
 SELECT
     SalesTerritory,
     STUFF(
@@ -532,3 +533,76 @@ SELECT
 FROM Application.StateProvinces s
 GROUP BY
     SalesTerritory;
+
+-- We saw PERCENTILE_CONT() and PERCENTILE_DISC() above
+-- Approximate percentiles are ordered set functions that became available in SQL Server 2022.
+WITH records AS
+(
+    SELECT
+        i.InvoiceDate,
+        i.CustomerID,
+        SUM(il.LineProfit) AS DailyProfit
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
+            ON il.InvoiceID = i.InvoiceID
+    GROUP BY
+        i.InvoiceDate,
+        i.CustomerID
+)
+SELECT
+    r.CustomerID,
+    APPROX_PERCENTILE_CONT(0.0) WITHIN GROUP (ORDER BY r.DailyProfit) AS Min,
+    APPROX_PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY r.DailyProfit) AS Q1,
+    APPROX_PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY r.DailyProfit)  AS Median,
+    APPROX_PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY r.DailyProfit) AS Q3,
+    APPROX_PERCENTILE_CONT(1.0) WITHIN GROUP (ORDER BY r.DailyProfit) AS Max
+FROM records r
+GROUP BY
+    r.CustomerID
+ORDER BY
+    r.CustomerID DESC;
+
+WITH records AS
+(
+    SELECT
+        i.InvoiceDate,
+        i.CustomerID,
+        SUM(il.LineProfit) AS DailyProfit
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
+            ON il.InvoiceID = i.InvoiceID
+    GROUP BY
+        i.InvoiceDate,
+        i.CustomerID
+)
+SELECT
+    'Approximate' AS [Type],
+    APPROX_PERCENTILE_CONT(0.0) WITHIN GROUP (ORDER BY r.DailyProfit) AS Min,
+    APPROX_PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY r.DailyProfit) AS Q1,
+    APPROX_PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY r.DailyProfit)  AS Median,
+    APPROX_PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY r.DailyProfit) AS Q3,
+    APPROX_PERCENTILE_CONT(1.0) WITHIN GROUP (ORDER BY r.DailyProfit) AS Max
+FROM records r;
+
+-- Compare to the actuals
+WITH records AS
+(
+    SELECT
+        i.InvoiceDate,
+        i.CustomerID,
+        SUM(il.LineProfit) AS DailyProfit
+    FROM Sales.InvoiceLines il
+        INNER JOIN Sales.Invoices i
+            ON il.InvoiceID = i.InvoiceID
+    GROUP BY
+        i.InvoiceDate,
+        i.CustomerID
+)
+SELECT DISTINCT
+    'Real' AS [Type],
+    PERCENTILE_CONT(0.0) WITHIN GROUP (ORDER BY r.DailyProfit) OVER () AS Min,
+    PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY r.DailyProfit) OVER () AS Q1,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY r.DailyProfit) OVER () AS Median,
+    PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY r.DailyProfit) OVER () AS Q3,
+    PERCENTILE_CONT(1.0) WITHIN GROUP (ORDER BY r.DailyProfit) OVER () AS Max
+FROM records r;
