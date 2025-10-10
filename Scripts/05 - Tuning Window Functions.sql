@@ -1,6 +1,10 @@
 USE [WideWorldImporters]
 GO
+-- Run in SSMS to get actual timings.
+
 -- Ensure that compatibility mode is 2019!
+SELECT compatibility_level FROM sys.databases WHERE name = 'WideWorldImporters';
+ALTER DATABASE WideWorldImporters SET COMPATIBILITY_LEVEL = 160;
 
 -- Remove an index if it already exists.
 IF EXISTS
@@ -75,6 +79,53 @@ WHERE
     r.rownum = 0;
 GO
 
+-- What about additional filters?
+SELECT
+    COUNT(*) AS NumberOfInvoices,
+	SUM(CASE WHEN i.TotalChillerItems >= 3 THEN 1 ELSE 0 END) AS EnoughChillerItems
+FROM Sales.Invoices i;
+
+WITH records AS
+(
+    SELECT
+        ROW_NUMBER() OVER (
+            PARTITION BY i.CustomerID
+            ORDER BY i.OrderID) AS rownum
+    FROM Sales.Invoices i
+	WHERE
+		i.TotalChillerItems >= 3
+)
+SELECT *
+FROM records r
+WHERE
+    r.rownum = 0;
+GO
+
+-- This index doesn't work at all--SQL Server ignores it altogether.
+CREATE INDEX [IX_Sales_Invoices_WindowFunction] ON Sales.Invoices
+(
+	TotalChillerItems,
+	CustomerID,
+	OrderID
+) WITH (DROP_EXISTING = ON);
+
+-- Now we have an index worth using.
+WITH records AS
+(
+    SELECT
+        ROW_NUMBER() OVER (
+            PARTITION BY i.CustomerID
+            ORDER BY i.OrderID) AS rownum
+    FROM Sales.Invoices i
+	WHERE
+		i.TotalChillerItems >= 3
+)
+SELECT *
+FROM records r
+WHERE
+    r.rownum = 0;
+GO
+
 -- Get rid of the index.
 IF EXISTS
 (
@@ -88,8 +139,10 @@ BEGIN
 END
 GO
 
+-- Batch mode can make a huge difference for large datasets.
+SELECT COUNT(*) FROM Warehouse.ColdRoomTemperatures_Archive;
+GO
 
--- Batch mode!
 WITH records AS
 (
     SELECT
@@ -117,6 +170,70 @@ SELECT *
 FROM records r
 WHERE
     r.rownum = 0;
+GO
+
+
+-- Batch mode redux, plus RANGE versus ROWS
+-- NOTE: This is a pretty bad query!
+WITH records AS
+(
+	-- Recall: default frame uses RANGE
+    SELECT
+        SUM(c.Temperature) OVER (
+            PARTITION BY c.ColdRoomSensorNumber
+            ORDER BY c.ColdRoomTemperatureID) AS sumtemp
+    FROM Warehouse.ColdRoomTemperatures_Archive c
+)
+SELECT *
+FROM records r
+WHERE
+    r.sumtemp = 0
+OPTION(USE HINT ('QUERY_OPTIMIZER_COMPATIBILITY_LEVEL_140'));
+GO
+
+WITH records AS
+(
+    SELECT
+        SUM(c.Temperature) OVER (
+            PARTITION BY c.ColdRoomSensorNumber
+            ORDER BY c.ColdRoomTemperatureID
+			ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS sumtemp
+    FROM Warehouse.ColdRoomTemperatures_Archive c
+)
+SELECT *
+FROM records r
+WHERE
+    r.sumtemp = 0
+OPTION(USE HINT ('QUERY_OPTIMIZER_COMPATIBILITY_LEVEL_140'));
+GO
+
+WITH records AS
+(
+    SELECT
+        SUM(c.Temperature) OVER (
+            PARTITION BY c.ColdRoomSensorNumber
+            ORDER BY c.ColdRoomTemperatureID) AS sumtemp
+    FROM Warehouse.ColdRoomTemperatures_Archive c
+)
+SELECT *
+FROM records r
+WHERE
+    r.sumtemp = 0;
+GO
+
+WITH records AS
+(
+    SELECT
+        SUM(c.Temperature) OVER (
+            PARTITION BY c.ColdRoomSensorNumber
+            ORDER BY c.ColdRoomTemperatureID
+			ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS sumtemp
+    FROM Warehouse.ColdRoomTemperatures_Archive c
+)
+SELECT *
+FROM records r
+WHERE
+    r.sumtemp = 0;
 GO
 
 -- Limit the number of unique windows!
@@ -207,6 +324,23 @@ WITH records AS
 		SUM(il.Quantity) OVER (PARTITION BY il.InvoiceID ORDER BY il.InvoiceLineID) AS s,
 		MIN(il.Quantity) OVER (PARTITION BY il.InvoiceID ORDER BY il.InvoiceLineID) AS mn,
 		MAX(il.Quantity) OVER (PARTITION BY il.InvoiceID ORDER BY il.InvoiceLineID) AS mx,
+		COUNT(il.Quantity) OVER (PARTITION BY il.InvoiceID ORDER BY il.InvoiceLineID) AS c
+	FROM Sales.InvoiceLines il
+)
+SELECT *
+FROM records
+WHERE
+	s < 0;
+
+-- Aggregate columns don't change the performance profile like changing the window does.
+WITH records AS
+(
+	SELECT
+		il.InvoiceLineID,
+		il.InvoiceID,
+		SUM(il.Quantity) OVER (PARTITION BY il.InvoiceID ORDER BY il.InvoiceLineID) AS s,
+		MIN(il.UnitPrice) OVER (PARTITION BY il.InvoiceID ORDER BY il.InvoiceLineID) AS mn,
+		MAX(il.TaxRate) OVER (PARTITION BY il.InvoiceID ORDER BY il.InvoiceLineID) AS mx,
 		COUNT(il.Quantity) OVER (PARTITION BY il.InvoiceID ORDER BY il.InvoiceLineID) AS c
 	FROM Sales.InvoiceLines il
 )
